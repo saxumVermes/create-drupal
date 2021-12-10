@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:latest
+    restart: unless-stopped
+    networks:
+      - drupal
+    ports:
+      - '$NGINX_PORT:80'
+    volumes:
+      - drupal:/opt/drupal/web
+      - $PWD/nginx.conf:/etc/nginx/conf.d/default.conf:cached
+
+  drupal:
+    build: .
+    env_file:
+      - .env
+    networks:
+      - drupal
+    volumes:
+      - drupal:/opt/drupal/web
+      - $HOME/.ssh:/root/.ssh:ro
+
+  mysql:
+    image: mysql/mysql-server:5.7.34-1.2.3-server
+    env_file:
+      - .env
+    networks:
+      - drupal
+    ports:
+      - '$MYSQL_PORT:3306'
+    volumes:
+      - db:/var/lib/mysql:cached
+
+networks:
+  drupal:
+
+volumes:
+  db:
+  drupal:

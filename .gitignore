@@ -1,0 +1,5 @@
+/.appData
+/.idea
+__pycache__
+.env.config.yaml
+/stack/.env

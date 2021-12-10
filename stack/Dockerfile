@@ -1,0 +1,7 @@
+FROM drupal:9.2.10-php7.4-fpm-buster
+
+RUN apt update && apt install -y git unzip vim libicu-dev && docker-php-ext-install intl
+
+COPY ./entrypoint.sh /entrypoint.sh
+
+ENTRYPOINT ['/entrypoint.sh']
