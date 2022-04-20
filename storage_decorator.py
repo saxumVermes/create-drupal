@@ -1,7 +1,7 @@
 import json
 import os
 
-from storage import ensure_dir, storage_dir, storage_name, write_json
+from storage import storage_name, write_json
 
 
 def select(id):

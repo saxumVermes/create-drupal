@@ -65,6 +65,8 @@ def register_site(args) -> int:
         'mysql_port': mysql_port,
     })
 
+    select({'project_name': id})
+
     return SUCCESS
 
 

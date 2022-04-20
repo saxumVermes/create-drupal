@@ -5,14 +5,18 @@ import os
 storage_dir = '.appData'
 storage_name = f'{storage_dir}/local.storage.json'
 
-def ensure_dir(func): 
+def ensure_storage(func): 
     if not os.path.isdir(storage_dir):
         os.mkdir(storage_dir)
     
+    if not os.path.isfile(storage_name):
+        with open(storage_name, 'w') as file:
+            file.write(json.dumps({'sites': {}}))
+
     return func
 
 
-@ensure_dir
+@ensure_storage
 def upsert(id: str, value: dict):
     with open(storage_name, 'r+') as file:
         content = file.read()
@@ -27,7 +31,7 @@ def upsert(id: str, value: dict):
         file.truncate()
         file.write(json.dumps(content))
 
-@ensure_dir
+@ensure_storage
 def delete(id: str):
     with open(storage_name, 'r+') as file:
         content = file.read()
@@ -41,7 +45,7 @@ def delete(id: str):
 
         write_json(file, content)
 
-@ensure_dir
+@ensure_storage
 def get(id: str):
     with open(storage_name) as file:
         content = file.read()
@@ -51,14 +55,16 @@ def get(id: str):
         
         return None
 
-@ensure_dir
+@ensure_storage
 def all():
     with open(storage_name) as file:
         content = file.read()
-        if content:
-            return json.loads(content)['sites']
+        if not content:
+            return None
+
+        content = json.loads(content)['sites']
         
-        return None
+        return None if len(content) == 0 else content
 
 
 def write_json(file: TextIOWrapper, content: dict):
