@@ -4,4 +4,6 @@ RUN apt update && apt install -y git unzip vim libicu-dev && docker-php-ext-inst
 
 COPY ./entrypoint.sh /entrypoint.sh
 
-ENTRYPOINT ['/entrypoint.sh']
+ENTRYPOINT ["/entrypoint.sh"]
+
+CMD ["php-fpm"]

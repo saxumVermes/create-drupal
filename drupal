@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 import subprocess
 import sys
+import pty
 
 from argparse import ArgumentParser
 from typing import Tuple
 from prettytable import PrettyTable
 
 import storage
+import storage_decorator
 from config import config
+
 
 SUCCESS = 0
 NO_DATA_ERROR = 1
@@ -31,6 +34,7 @@ MYSQL_DATABASE=main
 
 # docker-compose project name
 COMPOSE_PROJECT_NAME={id}
+HOSTNAME={id}
 
 NGINX_PORT={info['nginx_port']}
 MYSQL_PORT={info['mysql_port']}
@@ -41,6 +45,8 @@ GIT_USER_EMAIL={config['git']['user']['email']}
 
         file.seek(0)
         file.write(content)
+
+        storage_decorator.select(id)
 
 
 def register_site(args) -> int:
@@ -91,7 +97,10 @@ def list_sites(args):
         'mp': [],
     }
  
+    active = storage_decorator.active()
     for name, ports in all.items():
+        if active == name:
+            name = '* '+name
         data['id'].append(name)
         data['np'].append(ports['nginx_port'])
         data['mp'].append(ports['mysql_port'])
@@ -139,6 +148,12 @@ def compose(args) -> Tuple[int, str]:
     return SUCCESS, stdout.decode('utf-8')
 
 
+def enter(args):
+    service = args['service']
+    command = ['docker-compose', '-f', 'stack/docker-compose.yaml', 'exec', service, '/bin/bash']
+    pty.spawn(command)
+
+
 #### Command registrar
 
 registry = {
@@ -147,6 +162,7 @@ registry = {
   'list': list_sites,
   'select': select,
   'delete': delete_site,
+  'enter': enter,
 }
 
 def run(command_name: str, args: dict) -> int:
@@ -187,6 +203,9 @@ def main() -> None:
     # Not used, but at least generates a help message
     compose = sub_parser.add_parser('compose')
     compose.add_argument('command', help='The command to pass to docker-compose', type=str, nargs='*')
+
+    enter = sub_parser.add_parser('enter')
+    enter.add_argument('service', help='The service container to enter', type=str)
 
     select = sub_parser.add_parser('select')
     select.add_argument('project_name', help='The identifier of the drupal stack', type=str)

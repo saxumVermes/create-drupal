@@ -1,3 +1,4 @@
+from io import TextIOWrapper
 import json
 import os
 
@@ -20,7 +21,7 @@ def upsert(id: str, value: dict):
         else:
             content = {}
 
-        content[id] = value
+        content['sites'][id] = value
 
         file.seek(0)
         file.truncate()
@@ -36,11 +37,9 @@ def delete(id: str):
         if not content:
             raise NoDataError('There is nothing to delete')
 
-        del content[id]
+        del content['sites'][id]
 
-        file.seek(0)
-        file.truncate()
-        file.write(json.dumps(content))
+        write_json(file, content)
 
 @ensure_dir
 def get(id: str):
@@ -48,7 +47,7 @@ def get(id: str):
         content = file.read()
         if content:
             all_content = json.loads(content)
-            return all_content.get(id, None)
+            return all_content['sites'].get(id, None)
         
         return None
 
@@ -57,10 +56,15 @@ def all():
     with open(storage_name) as file:
         content = file.read()
         if content:
-            return json.loads(content)
+            return json.loads(content)['sites']
         
         return None
 
+
+def write_json(file: TextIOWrapper, content: dict):
+    file.seek(0)
+    file.truncate()
+    file.write(json.dumps(content))
 
 class NoDataError(Exception):
     pass
