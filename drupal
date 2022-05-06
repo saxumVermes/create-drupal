@@ -2,6 +2,7 @@
 import subprocess
 import sys
 import pty
+import os
 
 from argparse import ArgumentParser
 from typing import Tuple
@@ -152,7 +153,7 @@ def compose(args) -> Tuple[int, str]:
 
 def enter(args):
     service = args['service']
-    command = ['docker-compose', '-f', 'stack/docker-compose.yaml', 'exec', service, '/bin/bash']
+    command = ['docker-compose', '-f', 'stack/docker-compose.yaml', 'exec', '-e', 'COLUMNS=150', service, '/bin/bash']
     pty.spawn(command)
 
 
