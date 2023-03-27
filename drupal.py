@@ -5,17 +5,19 @@ import subprocess
 import sys
 import pty
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, _SubParsersAction
 from typing import Tuple
 from pkg_resources import ensure_directory
 from prettytable import PrettyTable
 import yaml
 from model import Site
+from typing import List
 
 import storage
 import storage_decorator
 from config import config
-
+from commands.composer import Composer
+from commands.command import Command
 
 SUCCESS = 0
 NO_DATA_ERROR = 1
@@ -136,7 +138,6 @@ def list_sites(args):
 
 def delete_site(args):
     id = args['project_name']
-    id = args['project_name']
     info = storage.get(id)
     if not info:
         print('There is nothing to delete')
@@ -148,7 +149,7 @@ def delete_site(args):
     print(f'[INFO] docker-compose output: {message}')
     
     print(f'Stack with id {id} has been deleted')
-    return SUCCESS
+    return exit_code
 
 
 def insert_ngrok_data(site: Site):
@@ -221,10 +222,21 @@ registry = {
   'enter': enter,
 }
 
+new_registry: List[Command] = [Composer()]
+
 def run(command_name: str, args: dict) -> int:
-    func = registry[command_name]
-    exit_code = func(args)
-    return exit_code
+    cmd = registry.get(command_name, False)
+    if cmd is not False:
+        exit_code = cmd(args)
+        return exit_code
+    
+    for cmd in new_registry:
+        if cmd.name == command_name:
+            exit_code = cmd.execute(args)
+            return exit_code
+    
+    raise NotImplemented('the command does not exist')
+
 
 def handle_compose_command() -> int:
     if not sys.argv[1:]:
@@ -238,6 +250,17 @@ def handle_compose_command() -> int:
     print(messaage)
     return exit_code
 
+def bootstrap(parser: _SubParsersAction):
+    for cmd in new_registry:
+        subp = parser.add_parser(name=cmd.name, description=cmd.description)
+
+        for arg in cmd.get_argument_list():
+            if arg.is_optional():
+                subp.add_argument(arg.name, arg.short_name, help=arg.help_msg, type=arg.type)
+            else:
+                subp.add_argument(arg.name, help=arg.help_msg, type=arg.type)
+
+
 def main() -> None:
     # special case
     exit_code = handle_compose_command()
@@ -246,6 +269,9 @@ def main() -> None:
 
     parser = ArgumentParser()
     sub_parser = parser.add_subparsers()
+    
+    bootstrap(sub_parser)
+
     create = sub_parser.add_parser('create')
     create.add_argument('project_name', help='The identifier of the drupal stack', type=str)
     create.add_argument('--nginx-port', '-np', help='Nginx port mapping', type=str)
